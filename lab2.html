@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Breed Search</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        h2 {
+            text-align: center;
+            color: #343a40;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .container label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type=text] {
+            width: calc(100% - 22px);
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .radio-group {
+            margin: 20px 0;
+        }
+        .radio-group label {
+            margin-right: 15px;
+        }
+        .results {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background-color: #ffffff;
+        }
+        .results div {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .results h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .results p {
+            margin: 5px 0;
+        }
+        .average-intelligence {
+            font-weight: bold;
+            color: #343a40;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Cat Breed Search</h2>
+
+<div class="container">
+    <label for="allNames">All Names:</label>
+    <input type="text" id="allNames" placeholder="Enter all names...">
+
+    <label for="healthIssues">Health Issues:</label>
+    <input type="text" id="healthIssues" placeholder="Enter health issues...">
+
+    <div class="radio-group">
+        <label>
+            <input type="radio" id="imperial" name="weight" value="imperial" checked>
+            Imperial
+        </label>
+        <label>
+            <input type="radio" id="metric" name="weight" value="metric">
+            Metric
+        </label>
+    </div>
+    <button id="weightButton">Show Weight</button>
+    <button id="intelligenceFriendlyButton">Show Intelligence - Friendly</button>
+    <button id="averageIntelligenceButton">Show Average Intelligence</button>
+</div>
+
+<div class="container">
+    <p class="average-intelligence">Average Intelligence for Child Friendly: <span id="childFriendlyIntelligence"></span></p>
+</div>
+
+<div class="results" id="results"></div>
+
+<script>
+    const allNamesInput = document.getElementById('allNames');
+    const healthIssuesInput = document.getElementById('healthIssues');
+    const imperialRadio = document.getElementById('imperial');
+    const metricRadio = document.getElementById('metric');
+    const weightButton = document.getElementById('weightButton');
+    const intelligenceFriendlyButton = document.getElementById('intelligenceFriendlyButton');
+    const averageIntelligenceButton = document.getElementById('averageIntelligenceButton');
+    const childFriendlyIntelligenceSpan = document.getElementById('childFriendlyIntelligence');
+    const resultsDiv = document.getElementById('results');
+
+    function getCatBreeds() {
+        const url = 'https://api.thecatapi.com/v1/breeds';
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error fetching cat breeds:', error);
+            });
+    }
+
+    function displayResults(breeds) {
+        resultsDiv.innerHTML = '';
+        const allNames = allNamesInput.value.trim().toLowerCase();
+        const healthIssues = healthIssuesInput.value.trim().toLowerCase();
+        const weightUnit = imperialRadio.checked ? 'imperial' : 'metric';
+
+        const filteredBreeds = breeds.filter(breed => {
+            const nameMatch = allNames ? breed.name.toLowerCase().includes(allNames) : true;
+            const healthMatch = healthIssues ? breed.temperament.toLowerCase().includes(healthIssues) : true;
+            return nameMatch && healthMatch;
+        });
+
+        filteredBreeds.forEach(breed => {
+            const breedElement = document.createElement('div');
+            breedElement.innerHTML = `
+                <h3>${breed.name}</h3>
+                <p><strong>Temperament:</strong> ${breed.temperament}</p>
+                <p><strong>Origin:</strong> ${breed.origin}</p>
+                <p><strong>Weight:</strong> ${breed.weight[weightUnit].metric} ${weightUnit === 'imperial' ? 'lbs' : 'kg'}</p>
+                <p><strong>Child Friendly:</strong> ${breed.child_friendly}</p>
+            `;
+            resultsDiv.appendChild(breedElement);
+        });
+
+        // Update child friendly intelligence
+        const childFriendlyBreeds = filteredBreeds.filter(breed => breed.child_friendly === 1);
+        if (childFriendlyBreeds.length > 0) {
+            let totalIntelligence = 0;
+            childFriendlyBreeds.forEach(breed => {
+                totalIntelligence += breed.intelligence;
+            });
+            childFriendlyIntelligenceSpan.textContent = (totalIntelligence / childFriendlyBreeds.length).toFixed(1);
+        } else {
+            childFriendlyIntelligenceSpan.textContent = 'N/A';
+        }
+    }
+
+    weightButton.addEventListener('click', getCatBreeds);
+    intelligenceFriendlyButton.addEventListener('click', getCatBreeds);
+    averageIntelligenceButton.addEventListener('click', getCatBreeds);
+
+    // Initial fetch on page load
+    getCatBreeds();
+</script>
+
+</body>
+</html>
+
+
+
+
